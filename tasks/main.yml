@@ -1,0 +1,89 @@
+---
+# tasks file for vault
+
+- name: Install requirements
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ vault_packages }}"
+    - "{{ vault_additional_packages }}"
+  tags:
+    - package
+    - vault
+
+- name: Create vault group
+  group:
+    name: vault
+    system: yes
+    state: present
+  tags:
+    - setup
+    - vault
+
+- name: Create vault user
+  user:
+    name: vault
+    group: vault
+    groups: ssl-cert
+    system: yes
+    state: present
+  tags:
+    - setup
+    - vault
+
+- name: Create config directory
+  file:
+    path: /etc/vault
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  tags:
+    - setup
+    - vault
+
+- name: Download and install vault
+  unarchive:
+    src: "{{ vault_binary_url }}"
+    dest: "/usr/local/bin"
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: yes
+    creates: "/usr/local/bin/vault"
+  tags:
+    - setup
+    - vault
+
+- name: Create vault configuration
+  copy:
+    content: "{{ vault_config | mandatory | to_nice_json }}"
+    dest: "/etc/vault/config.json"
+    owner: vault
+    group: vault
+    mode: 0640
+  notify: reload vault
+  tags:
+    - config
+    - vault
+
+- name: Setup systemd file
+  template:
+    src: systemd.j2
+    dest: /lib/systemd/system/vault.service
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - setup
+    - vault
+
+- name: Enable service
+  service:
+    name: vault
+    enabled: yes
+    state: started
+  tags:
+    - service
+    - vault

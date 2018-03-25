@@ -1,0 +1,16 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    vault_config:
+      storage:
+        file:
+          path: /var/tmp/vault
+      listener:
+        tcp:
+          address: "{{ ansible_eth0.ipv4.address }}:8200"
+          tls_cert_file: /etc/ssl/certs/ssl-cert-snakeoil.pem
+          tls_key_file: /etc/ssl/private/ssl-cert-snakeoil.key
+
+  roles:
+    - role: vault
